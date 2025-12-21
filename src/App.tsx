@@ -361,7 +361,7 @@ function App() {
           <div className="flex items-center gap-1">
             <button
               onClick={() => setActiveReportTab('findings')}
-              className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${activeReportTab === 'findings'
+              className={`px-4 py-1.5 text-sm font-medium rounded transition-colors whitespace-nowrap ${activeReportTab === 'findings'
                 ? 'bg-white/10 text-white'
                 : 'text-white/50 hover:text-white hover:bg-white/5'
                 }`}
@@ -370,7 +370,7 @@ function App() {
             </button>
             <button
               onClick={() => setActiveReportTab('report')}
-              className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${activeReportTab === 'report'
+              className={`px-4 py-1.5 text-sm font-medium rounded transition-colors whitespace-nowrap ${activeReportTab === 'report'
                 ? 'bg-white/10 text-white'
                 : 'text-white/50 hover:text-white hover:bg-white/5'
                 }`}
@@ -385,7 +385,7 @@ function App() {
                 <select
                   value={reportLanguage}
                   onChange={(e) => setReportLanguage(e.target.value)}
-                  className="px-2 py-1.5 text-xs font-medium bg-white/5 border border-white/10 rounded text-white/70 focus:outline-none focus:border-white/30 hover:bg-white/10 transition-colors"
+                  className="px-2 py-1.5 text-xs font-medium bg-white/5 border border-white/10 rounded text-white/70 focus:outline-none focus:border-white/30 hover:bg-white/10 transition-colors max-w-[120px]"
                   title="Report Language"
                 >
                   {REPORT_LANGUAGES.map(lang => (
@@ -397,7 +397,7 @@ function App() {
                 <button
                   onClick={handleGenerate}
                   disabled={!findings.trim() || isGenerating}
-                  className="px-4 py-1.5 text-xs font-medium bg-white text-black hover:bg-gray-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-1.5 text-xs font-medium bg-white text-black hover:bg-gray-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
                 >
                   {isGenerating ? (
                     <>
@@ -417,14 +417,14 @@ function App() {
                 <button
                   onClick={handleExportMarkdown}
                   disabled={!markdown}
-                  className="not-prose px-3 py-1.5 text-xs font-medium bg-white text-black hover:bg-gray-200 rounded transition-colors disabled:opacity-50"
+                  className="not-prose px-3 py-1.5 text-xs font-medium bg-white text-black hover:bg-gray-200 rounded transition-colors disabled:opacity-50 whitespace-nowrap"
                 >
                   Export MD
                 </button>
                 <button
                   onClick={handleExportPDF}
                   disabled={!markdown}
-                  className="not-prose px-3 py-1.5 text-xs font-medium bg-white text-black hover:bg-gray-200 rounded transition-colors disabled:opacity-50"
+                  className="not-prose px-3 py-1.5 text-xs font-medium bg-white text-black hover:bg-gray-200 rounded transition-colors disabled:opacity-50 whitespace-nowrap"
                 >
                   Export PDF
                 </button>

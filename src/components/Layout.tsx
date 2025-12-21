@@ -63,6 +63,8 @@ export function Layout({
 
             {/* Main Content */}
             <main className="flex-1 flex flex-col min-w-0 p-4 relative">
+                {/* Top drag handle for main area */}
+                <div className="absolute top-0 left-0 w-full h-6 draggable z-50" />
                 <div className="flex-1 glass-panel rounded-xl overflow-hidden relative flex flex-col select-text">
                     {children}
                 </div>

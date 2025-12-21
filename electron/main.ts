@@ -45,6 +45,8 @@ function createWindow() {
     vibrancy: 'under-window', // Glass effect on macOS
     visualEffectState: 'active',
     backgroundColor: '#00000000', // Transparent bg for vibrancy
+    minWidth: 900,
+    minHeight: 600,
   })
 
 
