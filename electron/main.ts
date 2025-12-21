@@ -213,6 +213,16 @@ app.whenReady().then(() => {
     }
   });
 
+  app.setAboutPanelOptions({
+    applicationName: 'AIReporter',
+    applicationVersion: '1.0.0',
+    copyright: 'Copyright © 2025 oscarmine',
+    version: '1.0.0',
+    credits: 'Built with Electron, React, and Gemini AI',
+    authors: ['oscarmine'],
+    website: 'https://github.com/oscarmine/AIReporter',
+    iconPath: path.join(process.env.VITE_PUBLIC, 'icon.png'),
+  });
   app.setName('AIReporter');
   createWindow();
 })
