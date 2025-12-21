@@ -27,12 +27,12 @@ export function Layout({
     onProjectsChange,
 }: LayoutProps) {
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-background text-primary selection:bg-white/20 font-sans">
+        <div className="flex h-screen w-screen overflow-hidden bg-background text-primary selection:bg-white/20 font-sans select-none">
             {/* Sidebar */}
             <aside className="w-64 flex-shrink-0 bg-surface border-r border-white/5 flex flex-col glass-panel m-2 mr-0 rounded-xl">
-                <div className="p-4 border-b border-white/5">
+                <div className="p-4 border-b border-white/5 draggable flex items-center pt-6">
                     <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                        AI Reporter
+                        AIReporter
                     </h1>
                 </div>
 
@@ -63,7 +63,7 @@ export function Layout({
 
             {/* Main Content */}
             <main className="flex-1 flex flex-col min-w-0 p-4 relative">
-                <div className="flex-1 glass-panel rounded-xl overflow-hidden relative flex flex-col">
+                <div className="flex-1 glass-panel rounded-xl overflow-hidden relative flex flex-col select-text">
                     {children}
                 </div>
             </main>

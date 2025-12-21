@@ -21,6 +21,14 @@
   @apply bg-white text-black font-semibold hover:bg-gray-200 transition-colors px-4 py-2 rounded-md;
 }
 
+.draggable {
+  -webkit-app-region: drag;
+}
+
+.non-draggable {
+  -webkit-app-region: no-drag;
+}
+
 @keyframes slide-in {
   from {
     opacity: 0;
