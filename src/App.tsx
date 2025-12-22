@@ -4,9 +4,12 @@ import { SettingsView } from './components/SettingsView';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { ImageGallery } from './components/ImageGallery';
 import { InputModal } from './components/InputModal';
+import { HackerOneReportView } from './components/HackerOneReportView';
+import { Dropdown } from './components/Dropdown';
 import { ToastContainer, useToast } from './components/Toast';
 import { Project, getProjects, updateReport, getSettings } from './lib/storage';
 import { storeImage, getImagesForReport, replaceImageReferences, updateImageDescription, StoredImage } from './lib/images';
+import { parseHackerOneReport } from './lib/h1Parser';
 
 type View = 'home' | 'report' | 'settings';
 type ReportTab = 'findings' | 'report';
@@ -15,16 +18,19 @@ type ReportTab = 'findings' | 'report';
 const REPORT_LANGUAGES = [
   'English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Chinese (Simplified)',
   'Japanese', 'Korean', 'Arabic', 'Hindi', 'Turkish', 'Dutch', 'Polish', 'Indonesian', 'Vietnamese',
-  'Thai', 'Ukrainian', 'Swedish', 'Uzbek', 'Persian (Farsi)'
+  'Thai', 'Ukrainian', 'Swedish', 'Uzbek', 'Persian (Farsi)', 'Kazakh', 'Kyrgyz', 'Tajik', 'Turkmen',
+  'Pashto', 'Dari', 'Azerbaijani', 'Georgian', 'Armenian'
 ];
 
 function App() {
   const [activeView, setActiveView] = useState<View>('home');
   const [activeReportTab, setActiveReportTab] = useState<ReportTab>('findings');
   const [reportLanguage, setReportLanguage] = useState('English');
+  const [reportMode, setReportMode] = useState('standard'); // Current report's display mode
+  const [pendingMode, setPendingMode] = useState('standard'); // Mode selected for next generation
   const [findings, setFindings] = useState('');
   const [markdown, setMarkdown] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingReports, setGeneratingReports] = useState<Set<string>>(new Set());
   const [isDragging, setIsDragging] = useState(false);
   const [reportImages, setReportImages] = useState<StoredImage[]>([]);
   const [pendingUpload, setPendingUpload] = useState<File | null>(null);
@@ -39,6 +45,14 @@ function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+
+  // Ref to track current report ID for stale closures
+  const selectedReportIdRef = useRef<string | null>(null);
+
+  // Sync ref with state
+  useEffect(() => {
+    selectedReportIdRef.current = selectedReportId;
+  }, [selectedReportId]);
 
   // Load projects on mount
   useEffect(() => {
@@ -65,10 +79,38 @@ function App() {
     if (currentReport) {
       setFindings(currentReport.findings);
       setMarkdown(currentReport.markdown);
+      setReportMode(currentReport.mode || 'standard'); // Load saved mode or default
+      setPendingMode(currentReport.mode || 'standard'); // Sync pending mode too
       setActiveView('report');
-      setActiveReportTab('findings');
+      // Only reset tab if we're not waiting on a generation for this report
+      if (!generatingReports.has(currentReport.id)) {
+        // We stay on the current tab (findings vs report) or default to findings?
+        // User didn't specify behavior here, but keeping previous logic of resetting to findings on new select seems safe 
+        // UNLESS preventing tab switch was globally desired. But usually finding tab is where you start.
+        // Let's stick to existing behavior for fresh selects, but we won't switch tabs on completion.
+        setActiveReportTab('findings');
+      }
     }
   }, [selectedReportId]);
+
+  // Prevent Ctrl+A from selecting everything when not focused on an input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        const activeElement = document.activeElement;
+        const isInputFocused = activeElement instanceof HTMLTextAreaElement ||
+          activeElement instanceof HTMLInputElement ||
+          activeElement?.getAttribute('contenteditable') === 'true';
+
+        if (!isInputFocused) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Load images when report changes
   useEffect(() => {
@@ -96,12 +138,12 @@ function App() {
   useEffect(() => {
     if (selectedProjectId && selectedReportId) {
       const timer = setTimeout(() => {
-        updateReport(selectedProjectId, selectedReportId, { findings, markdown });
+        updateReport(selectedProjectId, selectedReportId, { findings, markdown, mode: reportMode });
         refreshProjects();
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [findings, markdown, selectedProjectId, selectedReportId, refreshProjects]);
+  }, [findings, markdown, reportMode, selectedProjectId, selectedReportId, refreshProjects]);
 
   const handleGenerate = useCallback(async () => {
     if (!findings.trim()) {
@@ -121,8 +163,12 @@ function App() {
     const capturedReportId = selectedReportId;
     const capturedFindings = findings;
     const capturedImages = [...reportImages];
+    const capturedMode = pendingMode; // Capture mode at generation start
 
-    setIsGenerating(true);
+    if (!capturedReportId || !capturedProjectId) return;
+
+    setGeneratingReports(prev => new Set(prev).add(capturedReportId));
+
     try {
       // Filter out invalid @img-xxx references from findings (only keep valid uploaded image IDs)
       const validImageIds = new Set(capturedImages.map(img => img.id));
@@ -138,13 +184,14 @@ function App() {
       const generatedReport = await window.ipcRenderer.invoke(
         'generate-report',
         cleanedFindings + imageContext,
-        { ...settings, language: reportLanguage }
+        { ...settings, language: reportLanguage, mode: capturedMode }
       );
 
-      // Only update if still on the same report
-      if (selectedReportId === capturedReportId) {
+      // Only update local state if still on the same report
+      // Use ref to check actual current report ID, preventing closure staleness
+      if (selectedReportIdRef.current === capturedReportId) {
         setMarkdown(generatedReport);
-        setActiveReportTab('report');
+        setReportMode(capturedMode);
       }
 
       // Check if the report still exists before saving (user may have deleted it)
@@ -154,11 +201,13 @@ function App() {
 
       if (targetProject && targetReport && capturedProjectId && capturedReportId) {
         updateReport(capturedProjectId, capturedReportId, {
-          findings: capturedFindings,
-          markdown: generatedReport
+          // Do NOT update findings here. User might have edited them while waiting.
+          // findings: capturedFindings, 
+          markdown: generatedReport,
+          mode: capturedMode
         });
         refreshProjects();
-        addToast('Report generated successfully!', 'success');
+        addToast(`Report "${targetReport.name}" generated successfully!`, 'success');
       } else {
         // Report was deleted during generation
         addToast('Report was deleted. Generated content discarded.', 'info');
@@ -185,15 +234,41 @@ function App() {
         }
       }
     } finally {
-      setIsGenerating(false);
+      setGeneratingReports(prev => {
+        const next = new Set(prev);
+        if (capturedReportId) next.delete(capturedReportId);
+        return next;
+      });
     }
-  }, [findings, reportImages, addToast, selectedProjectId, selectedReportId, refreshProjects]);
+  }, [findings, reportImages, addToast, selectedProjectId, selectedReportId, refreshProjects, reportLanguage, pendingMode]);
 
   const handleExportMarkdown = useCallback(async () => {
     try {
+      let exportContent = markdown;
+
+      // For HackerOne mode, build clean markdown from sections (remove delimiters)
+      if (reportMode === 'hackerone') {
+        const sections = parseHackerOneReport(markdown);
+        exportContent = `# ${sections.title}
+
+**Asset:** ${sections.asset}  
+**Weakness:** ${sections.weakness}  
+**Severity:** ${sections.severity}
+
+---
+
+${sections.description}
+
+---
+
+## Impact
+
+${sections.impact}`;
+      }
+
       // Replace image references with actual images for export
       // Use file:// protocol for external markdown files
-      const exportMarkdown = replaceImageReferences(markdown, reportImages, 'file');
+      const exportMarkdown = replaceImageReferences(exportContent, reportImages, 'file');
       const success = await window.ipcRenderer.invoke('export-markdown', exportMarkdown);
       if (success) {
         addToast('Markdown exported successfully!', 'success');
@@ -201,7 +276,7 @@ function App() {
     } catch (error) {
       addToast('Failed to export markdown', 'error');
     }
-  }, [markdown, reportImages, addToast]);
+  }, [markdown, reportImages, reportMode, addToast]);
 
   const handleExportPDF = useCallback(async () => {
     try {
@@ -213,8 +288,30 @@ function App() {
       const rep = proj?.reports.find(r => r.id === selectedReportId);
       const title = rep?.name || 'Report';
 
+      let exportContent = markdown;
+
+      // For HackerOne mode, build clean markdown from sections (remove delimiters)
+      if (reportMode === 'hackerone') {
+        const sections = parseHackerOneReport(markdown);
+        exportContent = `# ${sections.title}
+
+**Asset:** ${sections.asset}  
+**Weakness:** ${sections.weakness}  
+**Severity:** ${sections.severity}
+
+---
+
+${sections.description}
+
+---
+
+## Impact
+
+${sections.impact}`;
+      }
+
       // Replace image references with actual images for PDF
-      const exportMarkdown = replaceImageReferences(markdown, reportImages);
+      const exportMarkdown = replaceImageReferences(exportContent, reportImages);
       const success = await window.ipcRenderer.invoke('export-pdf', exportMarkdown, title);
       if (success) {
         addToast('PDF exported successfully!', 'success');
@@ -222,7 +319,7 @@ function App() {
     } catch (error) {
       addToast('Failed to export PDF', 'error');
     }
-  }, [markdown, reportImages, addToast]);
+  }, [markdown, reportImages, reportMode, addToast, selectedProjectId, selectedReportId]);
 
   // Handle image upload - store file and open modal for description
   const handleImageUpload = useCallback((files: FileList | null) => {
@@ -325,8 +422,8 @@ function App() {
 
   // Update preview when markdown or images change
   useEffect(() => {
-    if (activeReportTab !== 'report' || !markdown) {
-      setPreviewMarkdown(markdown);
+    if (!markdown) {
+      setPreviewMarkdown('');
       return;
     }
 
@@ -334,7 +431,7 @@ function App() {
     const result = replaceImageReferences(markdown, reportImages);
 
     setPreviewMarkdown(result);
-  }, [markdown, reportImages, activeReportTab]);
+  }, [markdown, reportImages]);
 
   // Render content based on view
   const renderContent = () => {
@@ -353,6 +450,8 @@ function App() {
         </div>
       );
     }
+
+    const isCurrentReportGenerating = generatingReports.has(currentReport.id);
 
     return (
       <div className="flex flex-col h-full">
@@ -382,24 +481,28 @@ function App() {
           <div className="flex items-center gap-2">
             {activeReportTab === 'findings' ? (
               <>
-                <select
+                <Dropdown
+                  value={pendingMode}
+                  onChange={setPendingMode}
+                  options={[
+                    { value: 'standard', label: 'Standard' },
+                    { value: 'hackerone', label: 'HackerOne' }
+                  ]}
+                  title="Report Mode (applies on next generation)"
+                />
+                <Dropdown
                   value={reportLanguage}
-                  onChange={(e) => setReportLanguage(e.target.value)}
-                  className="px-2 py-1.5 text-xs font-medium bg-white/5 border border-white/10 rounded text-white/70 focus:outline-none focus:border-white/30 hover:bg-white/10 transition-colors max-w-[120px]"
+                  onChange={setReportLanguage}
+                  options={REPORT_LANGUAGES.map(lang => ({ value: lang, label: lang }))}
                   title="Report Language"
-                >
-                  {REPORT_LANGUAGES.map(lang => (
-                    <option key={lang} value={lang} className="bg-[#1e1e1e] text-white">
-                      {lang}
-                    </option>
-                  ))}
-                </select>
+                  maxHeight={300}
+                />
                 <button
                   onClick={handleGenerate}
-                  disabled={!findings.trim() || isGenerating}
+                  disabled={!findings.trim() || isCurrentReportGenerating}
                   className="px-4 py-1.5 text-xs font-medium bg-white text-black hover:bg-gray-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
                 >
-                  {isGenerating ? (
+                  {isCurrentReportGenerating ? (
                     <>
                       <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -496,6 +599,8 @@ Tip: Add screenshots and reference them with @img-xxx`}
                 </div>
               )}
             </div>
+          ) : reportMode === 'hackerone' ? (
+            <HackerOneReportView markdown={markdown} previewMarkdown={previewMarkdown} onMarkdownChange={setMarkdown} />
           ) : (
             <MarkdownEditor value={markdown} previewValue={previewMarkdown} onChange={setMarkdown} />
           )}

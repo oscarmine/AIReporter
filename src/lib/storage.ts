@@ -1,9 +1,9 @@
-// Project and Report data types
 export interface Report {
     id: string;
     name: string;
     findings: string;
     markdown: string;
+    mode?: string; // 'standard' | 'hackerone'
     createdAt: number;
     updatedAt: number;
 }
@@ -75,7 +75,7 @@ export function updateProject(projectId: string, updates: Partial<Pick<Project, 
 }
 
 // Report CRUD operations within a project
-export function addReport(projectId: string, name: string, findings: string = '', markdown: string = ''): Report | null {
+export function addReport(projectId: string, name: string, findings: string = '', markdown: string = '', mode: string = 'standard'): Report | null {
     const projects = getProjects();
     const project = projects.find(p => p.id === projectId);
 
@@ -86,6 +86,7 @@ export function addReport(projectId: string, name: string, findings: string = ''
         name,
         findings,
         markdown,
+        mode,
         createdAt: Date.now(),
         updatedAt: Date.now(),
     };
@@ -97,7 +98,7 @@ export function addReport(projectId: string, name: string, findings: string = ''
     return report;
 }
 
-export function updateReport(projectId: string, reportId: string, updates: Partial<Pick<Report, 'name' | 'findings' | 'markdown'>>): Report | null {
+export function updateReport(projectId: string, reportId: string, updates: Partial<Pick<Report, 'name' | 'findings' | 'markdown' | 'mode'>>): Report | null {
     const projects = getProjects();
     const project = projects.find(p => p.id === projectId);
 

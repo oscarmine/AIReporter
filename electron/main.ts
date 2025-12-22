@@ -44,7 +44,8 @@ function createWindow() {
     titleBarStyle: 'hiddenInset', // Mac-like glassy header integration
     vibrancy: 'under-window', // Glass effect on macOS
     visualEffectState: 'active',
-    backgroundColor: '#00000000', // Transparent bg for vibrancy
+    width: 900,
+    height: 600,
     minWidth: 900,
     minHeight: 600,
   })
@@ -64,8 +65,8 @@ function createWindow() {
 }
 
 // IPC Handlers
-ipcMain.handle('generate-report', async (_event, findings: string, options: string | { apiKey?: string; temperature?: number; model?: string; language?: string }) => {
-  let apiKey, temperature, model, language;
+ipcMain.handle('generate-report', async (_event, findings: string, options: string | { apiKey?: string; temperature?: number; model?: string; language?: string; mode?: string }) => {
+  let apiKey, temperature, model, language, mode;
   if (typeof options === 'string') {
     apiKey = options;
   } else if (typeof options === 'object') {
@@ -73,8 +74,9 @@ ipcMain.handle('generate-report', async (_event, findings: string, options: stri
     temperature = options.temperature;
     model = options.model;
     language = options.language;
+    mode = options.mode;
   }
-  return await generateReport(findings, apiKey, temperature, model, language);
+  return await generateReport(findings, apiKey, temperature, model, language, mode);
 });
 
 import { dialog } from 'electron';
@@ -176,9 +178,51 @@ ipcMain.handle('delete-image', async (_event, filePath: string) => {
   }
 });
 
+// Replace image file while keeping the same ID/path
+ipcMain.handle('replace-image', async (_event, imageId: string, base64Data: string) => {
+  try {
+    const dir = getImagesDir();
+    const filePath = path.join(dir, `${imageId}.png`);
+
+    // Convert base64 to buffer
+    const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Content, 'base64');
+
+    // Overwrite the existing file
+    await fs.writeFile(filePath, buffer);
+    return filePath;
+  } catch (error) {
+    console.error('Failed to replace image:', error);
+    return null;
+  }
+});
+
 // Get images directory path
 ipcMain.handle('get-images-dir', () => {
   return getImagesDir();
+});
+
+// Save image to user-selected location
+ipcMain.handle('save-image-as', async (_event, sourcePath: string, imageId: string) => {
+  if (!win) return false;
+
+  const { dialog } = await import('electron');
+  const result = await dialog.showSaveDialog(win, {
+    defaultPath: `${imageId}.png`,
+    filters: [
+      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }
+    ]
+  });
+
+  if (result.canceled || !result.filePath) return false;
+
+  try {
+    await fs.copyFile(sourcePath, result.filePath);
+    return true;
+  } catch (error) {
+    console.error('Failed to save image:', error);
+    return false;
+  }
 });
 
 
@@ -203,7 +247,12 @@ app.on('activate', () => {
 app.whenReady().then(() => {
   // Register 'media' protocol to handle local image loading
   protocol.handle('media', (request) => {
-    const url = request.url.replace('media://', '');
+    let url = request.url.replace('media://', '');
+    // Strip query parameters (used for cache busting)
+    const queryIndex = url.indexOf('?');
+    if (queryIndex !== -1) {
+      url = url.substring(0, queryIndex);
+    }
     try {
       // Decode the URL to handle spaces and special characters
       const filePath = decodeURIComponent(url);

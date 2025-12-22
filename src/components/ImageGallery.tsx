@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { StoredImage, deleteImage } from '../lib/images';
 
 interface ImageGalleryProps {
@@ -10,6 +10,9 @@ interface ImageGalleryProps {
 
 export function ImageGallery({ images, onRefresh, onInsertRef, onRename }: ImageGalleryProps) {
     const [previewImage, setPreviewImage] = useState<StoredImage | null>(null);
+    const [replacingImageId, setReplacingImageId] = useState<string | null>(null);
+    const [cacheKey, setCacheKey] = useState(Date.now()); // Cache buster for image reload
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleDelete = async (imageId: string) => {
         if (confirm('Delete this screenshot?')) {
@@ -18,10 +21,55 @@ export function ImageGallery({ images, onRefresh, onInsertRef, onRename }: Image
         }
     };
 
+    const handleReplaceClick = (imageId: string) => {
+        setReplacingImageId(imageId);
+        fileInputRef.current?.click();
+    };
+
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !replacingImageId) {
+            setReplacingImageId(null);
+            return;
+        }
+
+        try {
+            // Convert file to base64
+            const base64Data = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsDataURL(file);
+            });
+
+            // Replace the image file while keeping the same ID
+            await window.ipcRenderer.invoke('replace-image', replacingImageId, base64Data);
+            setCacheKey(Date.now()); // Bust cache to reload image
+            onRefresh();
+        } catch (err) {
+            console.error('Failed to replace image:', err);
+        } finally {
+            setReplacingImageId(null);
+            // Reset the file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
     if (images.length === 0) return null;
 
     return (
         <>
+            {/* Hidden file input for replacing images */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept="image/*"
+                className="hidden"
+            />
+
             {/* Gallery Row */}
             <div className="flex items-center gap-2 px-6 py-3 border-b border-white/5 bg-white/[0.02] overflow-x-auto custom-scrollbar">
                 <span className="text-xs text-white/30 flex-shrink-0">Screenshots:</span>
@@ -36,7 +84,7 @@ export function ImageGallery({ images, onRefresh, onInsertRef, onRename }: Image
                             title={`${img.description} (${img.id})`}
                         >
                             <img
-                                src={`media://${encodeURIComponent(img.filePath)}`}
+                                src={`media://${encodeURIComponent(img.filePath)}?t=${cacheKey}`}
                                 alt={img.description}
                                 className="w-full h-full object-cover"
                             />
@@ -57,6 +105,13 @@ export function ImageGallery({ images, onRefresh, onInsertRef, onRename }: Image
                                 title={`Insert @${img.id}`}
                             >
                                 @
+                            </button>
+                            <button
+                                onClick={() => handleReplaceClick(img.id)}
+                                className="w-5 h-5 rounded-full bg-orange-500/90 text-white text-[10px] flex items-center justify-center hover:bg-orange-400 hover:scale-110 transition-all shadow-lg border border-white/10"
+                                title="Replace Image"
+                            >
+                                ↻
                             </button>
                             <button
                                 onClick={() => onRename(img.id)}
@@ -99,14 +154,19 @@ export function ImageGallery({ images, onRefresh, onInsertRef, onRename }: Image
                                 >
                                     Insert @{previewImage.id}
                                 </button>
-                                <a
-                                    href={`media://${encodeURIComponent(previewImage.filePath)}`}
-                                    download={`${previewImage.id}.png`}
-                                    className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-500 inline-block"
-                                    onClick={(e) => e.stopPropagation()}
+                                <button
+                                    onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                            await window.ipcRenderer.invoke('save-image-as', previewImage.filePath, previewImage.id);
+                                        } catch (err) {
+                                            console.error('Failed to save image:', err);
+                                        }
+                                    }}
+                                    className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-500"
                                 >
                                     ⬇ Download
-                                </a>
+                                </button>
                                 <button
                                     onClick={() => setPreviewImage(null)}
                                     className="px-3 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20"
@@ -116,7 +176,7 @@ export function ImageGallery({ images, onRefresh, onInsertRef, onRename }: Image
                             </div>
                         </div>
                         <img
-                            src={`media://${encodeURIComponent(previewImage.filePath)}`}
+                            src={`media://${encodeURIComponent(previewImage.filePath)}?t=${cacheKey}`}
                             alt={previewImage.description}
                             className="max-w-full max-h-[80vh] object-contain rounded-lg"
                         />
