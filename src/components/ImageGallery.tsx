@@ -71,7 +71,7 @@ export function ImageGallery({ images, onRefresh, onInsertRef, onRename }: Image
             />
 
             {/* Gallery Row */}
-            <div className="flex items-center gap-2 px-6 py-3 border-b border-white/5 bg-white/[0.02] overflow-x-auto custom-scrollbar">
+            <div className="flex items-center gap-6 px-6 py-3 border-b border-white/5 bg-white/[0.02] overflow-x-auto custom-scrollbar">
                 <span className="text-xs text-white/30 flex-shrink-0">Screenshots:</span>
                 {images.map((img) => (
                     <div
@@ -101,28 +101,28 @@ export function ImageGallery({ images, onRefresh, onInsertRef, onRename }: Image
                         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
                             <button
                                 onClick={() => onInsertRef(img.id)}
-                                className="w-5 h-5 rounded-full bg-blue-500/90 text-white text-[10px] flex items-center justify-center hover:bg-blue-400 hover:scale-110 transition-all shadow-lg border border-white/10"
+                                className="w-4 h-4 rounded-full bg-blue-500/90 text-white text-[9px] flex items-center justify-center hover:bg-blue-400 hover:scale-110 transition-all shadow-lg border border-white/10"
                                 title={`Insert @${img.id}`}
                             >
                                 @
                             </button>
                             <button
                                 onClick={() => handleReplaceClick(img.id)}
-                                className="w-5 h-5 rounded-full bg-orange-500/90 text-white text-[10px] flex items-center justify-center hover:bg-orange-400 hover:scale-110 transition-all shadow-lg border border-white/10"
+                                className="w-4 h-4 rounded-full bg-orange-500/90 text-white text-[9px] flex items-center justify-center hover:bg-orange-400 hover:scale-110 transition-all shadow-lg border border-white/10"
                                 title="Replace Image"
                             >
                                 ↻
                             </button>
                             <button
                                 onClick={() => onRename(img.id)}
-                                className="w-5 h-5 rounded-full bg-white/20 backdrop-blur-sm text-white text-[10px] flex items-center justify-center hover:bg-white/30 hover:scale-110 transition-all shadow-lg border border-white/10"
+                                className="w-4 h-4 rounded-full bg-white/20 backdrop-blur-sm text-white text-[9px] flex items-center justify-center hover:bg-white/30 hover:scale-110 transition-all shadow-lg border border-white/10"
                                 title="Rename Description"
                             >
                                 ✎
                             </button>
                             <button
                                 onClick={() => handleDelete(img.id)}
-                                className="w-5 h-5 rounded-full bg-red-500/90 text-white text-[10px] flex items-center justify-center hover:bg-red-400 hover:scale-110 transition-all shadow-lg border border-white/10"
+                                className="w-4 h-4 rounded-full bg-red-500/90 text-white text-[9px] flex items-center justify-center hover:bg-red-400 hover:scale-110 transition-all shadow-lg border border-white/10"
                                 title="Delete"
                             >
                                 ×
