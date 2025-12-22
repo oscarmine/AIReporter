@@ -266,9 +266,9 @@ app.whenReady().then(() => {
 
   app.setAboutPanelOptions({
     applicationName: 'AIReporter',
-    applicationVersion: '1.0.0',
+    applicationVersion: '2.0.0',
     copyright: 'Copyright © 2025 oscarmine',
-    version: '1.0.0',
+    version: '2.0.0',
     credits: 'Built with Electron, React, and Gemini AI',
     authors: ['oscarmine'],
     website: 'https://github.com/oscarmine/AIReporter',
