@@ -1,7 +1,24 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+// Redaction level instructions
+const REDACTION_INSTRUCTIONS: Record<string, string> = {
+    none: '',
+    low: `\n\n**REDACTION (Low):** Mask personal usernames and API keys/tokens (e.g., show as \`user_***\`, \`sk-***abc\`). Keep IP addresses, domains, and endpoints fully visible for reproducibility.`,
+    medium: `\n\n**REDACTION (Medium):** Redact internal/private IP addresses (10.x, 192.168.x), personal usernames, email addresses, and API keys/secrets. KEEP the target domain, public endpoints, and asset URLs fully visible - the company needs to identify where the vulnerability is.`,
+    high: `\n\n**REDACTION (High - MANDATORY):** You MUST fully anonymize this report for public disclosure. Apply ALL of the following replacements without exception:
+- ALL domain names → \`target.example.com\` or \`api.example.com\`
+- ALL IP addresses → \`[REDACTED-IP]\`
+- ALL usernames/emails → \`[USER]\` or \`user@example.com\`
+- ALL User-Agent strings → \`[REDACTED-UA]\`
+- ALL OS/browser versions → \`[REDACTED-OS]\`
+- ALL API keys/tokens/secrets → \`[REDACTED-KEY]\`
+- ALL company/product names → \`[COMPANY]\` or \`[PRODUCT]\`
+- ALL internal paths → \`/redacted/path/\`
+Do NOT leave any real identifying information. This report must be safe for public blog posts or Twitter.`
+};
+
 // Get API key from IPC (stored in renderer's localStorage, passed via IPC)
-export async function generateReport(findings: string, apiKeyFromSettings?: string, temperature: number = 0.1, modelName: string = 'gemini-2.5-flash', language: string = 'English', mode: string = 'standard'): Promise<string> {
+export async function generateReport(findings: string, apiKeyFromSettings?: string, temperature: number = 0.1, modelName: string = 'gemini-2.5-flash', language: string = 'English', mode: string = 'standard', redaction: string = 'none'): Promise<string> {
     // Priority: 1) Passed from settings, 2) Environment variable (dev only)
     const apiKey = apiKeyFromSettings || process.env.GEMINI_API_KEY;
 
@@ -16,6 +33,9 @@ export async function generateReport(findings: string, apiKeyFromSettings?: stri
             temperature: temperature,
         }
     });
+
+    // Get redaction instruction based on level
+    const redactionInstruction = REDACTION_INSTRUCTIONS[redaction] || '';
 
     let prompt = '';
 
@@ -72,7 +92,7 @@ Generate the report content in Markdown in the ${language} language. Use the fol
 - **LANGUAGE:** The entire report MUST be in ${language}.
 - **DELIMITERS:** You MUST use the <<<SECTION>>> and <<<END_SECTION>>> tags exactly as shown.
 - **IMAGE REFERENCES:** Use @img-xxx references from the input if available.
-- **NO FLUFF:** Be technical and precise.
+- **NO FLUFF:** Be technical and precise.${redactionInstruction}
 `;
     } else {
         // Standard Mode (Default) - Optimized for clarity, brevity, and high-impact detail
@@ -126,7 +146,7 @@ Focus on **clarity**, **reproducibility**, and **impact**. No fluff.
 - **LANGUAGE:** Write in ${language}.
 - **ACCURACY:** extensive detail based ONLY on provided findings. No hallucinations.
 - **IMAGES:** Use provided @img-xxx references exactly as is.
-- **STYLE:** Cyber-security professional tone. Active voice. Concise.`;
+- **STYLE:** Cyber-security professional tone. Active voice. Concise.${redactionInstruction}`;
     }
 
     try {

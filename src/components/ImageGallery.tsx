@@ -6,9 +6,10 @@ interface ImageGalleryProps {
     onRefresh: () => void;
     onInsertRef: (imageId: string) => void;
     onRename: (imageId: string) => void;
+    onEdit?: (imageId: string) => void;
 }
 
-export function ImageGallery({ images, onRefresh, onInsertRef, onRename }: ImageGalleryProps) {
+export function ImageGallery({ images, onRefresh, onInsertRef, onRename, onEdit }: ImageGalleryProps) {
     const [previewImage, setPreviewImage] = useState<StoredImage | null>(null);
     const [replacingImageId, setReplacingImageId] = useState<string | null>(null);
     const [cacheKey, setCacheKey] = useState(Date.now()); // Cache buster for image reload
@@ -108,18 +109,23 @@ export function ImageGallery({ images, onRefresh, onInsertRef, onRename }: Image
                             </button>
                             <button
                                 onClick={() => handleReplaceClick(img.id)}
-                                className="w-4 h-4 rounded-full bg-orange-500/90 text-white text-[9px] flex items-center justify-center hover:bg-orange-400 hover:scale-110 transition-all shadow-lg border border-white/10"
+                                className="w-4 h-4 rounded-full bg-orange-500/90 text-white flex items-center justify-center hover:bg-orange-400 hover:scale-110 transition-all shadow-lg border border-white/10"
                                 title="Replace Image"
                             >
-                                ↻
+                                <svg className="w-2 h-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M23 4v6h-6M1 20v-6h6" />
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                                </svg>
                             </button>
-                            <button
-                                onClick={() => onRename(img.id)}
-                                className="w-4 h-4 rounded-full bg-white/20 backdrop-blur-sm text-white text-[9px] flex items-center justify-center hover:bg-white/30 hover:scale-110 transition-all shadow-lg border border-white/10"
-                                title="Rename Description"
-                            >
-                                ✎
-                            </button>
+                            {onEdit && (
+                                <button
+                                    onClick={() => onEdit(img.id)}
+                                    className="w-4 h-4 rounded-full bg-green-500/90 text-white text-[9px] flex items-center justify-center hover:bg-green-400 hover:scale-110 transition-all shadow-lg border border-white/10"
+                                    title="Edit / Annotate"
+                                >
+                                    ✏️
+                                </button>
+                            )}
                             <button
                                 onClick={() => handleDelete(img.id)}
                                 className="w-4 h-4 rounded-full bg-red-500/90 text-white text-[9px] flex items-center justify-center hover:bg-red-400 hover:scale-110 transition-all shadow-lg border border-white/10"

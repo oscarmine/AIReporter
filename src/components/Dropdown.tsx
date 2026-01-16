@@ -81,7 +81,7 @@ export function Dropdown({ value, options, onChange, title, className = '', maxH
             {isOpen && (
                 <div
                     className="absolute top-full left-1/2 -translate-x-1/2 mt-1 min-w-full bg-[#1e1e1e] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden"
-                    style={{ maxHeight, minWidth: '120px' }}
+                    style={{ maxHeight, minWidth: '150px' }}
                 >
                     <div className="overflow-y-auto custom-scrollbar" style={{ maxHeight: maxHeight - 2 }}>
                         {options.map((option) => (

@@ -44,9 +44,9 @@ function createWindow() {
     titleBarStyle: 'hiddenInset', // Mac-like glassy header integration
     vibrancy: 'under-window', // Glass effect on macOS
     visualEffectState: 'active',
-    width: 900,
+    width: 1100,
     height: 600,
-    minWidth: 900,
+    minWidth: 1000,
     minHeight: 600,
   })
 
@@ -65,8 +65,8 @@ function createWindow() {
 }
 
 // IPC Handlers
-ipcMain.handle('generate-report', async (_event, findings: string, options: string | { apiKey?: string; temperature?: number; model?: string; language?: string; mode?: string }) => {
-  let apiKey, temperature, model, language, mode;
+ipcMain.handle('generate-report', async (_event, findings: string, options: string | { apiKey?: string; temperature?: number; model?: string; language?: string; mode?: string; redaction?: string }) => {
+  let apiKey, temperature, model, language, mode, redaction;
   if (typeof options === 'string') {
     apiKey = options;
   } else if (typeof options === 'object') {
@@ -75,8 +75,9 @@ ipcMain.handle('generate-report', async (_event, findings: string, options: stri
     model = options.model;
     language = options.language;
     mode = options.mode;
+    redaction = options.redaction;
   }
-  return await generateReport(findings, apiKey, temperature, model, language, mode);
+  return await generateReport(findings, apiKey, temperature, model, language, mode, redaction);
 });
 
 import { dialog } from 'electron';

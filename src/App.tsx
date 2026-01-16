@@ -4,6 +4,7 @@ import { SettingsView } from './components/SettingsView';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { ImageGallery } from './components/ImageGallery';
 import { InputModal } from './components/InputModal';
+import { ImageEditor } from './components/ImageEditor';
 import { HackerOneReportView } from './components/HackerOneReportView';
 import { Dropdown } from './components/Dropdown';
 import { ToastContainer, useToast } from './components/Toast';
@@ -28,6 +29,7 @@ function App() {
   const [reportLanguage, setReportLanguage] = useState('English');
   const [reportMode, setReportMode] = useState('standard'); // Current report's display mode
   const [pendingMode, setPendingMode] = useState('standard'); // Mode selected for next generation
+  const [redactionLevel, setRedactionLevel] = useState('none'); // Redaction level for generation
   const [findings, setFindings] = useState('');
   const [markdown, setMarkdown] = useState('');
   const [generatingReports, setGeneratingReports] = useState<Set<string>>(new Set());
@@ -36,6 +38,7 @@ function App() {
   const [pendingUpload, setPendingUpload] = useState<File | null>(null);
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
   const [previewMarkdown, setPreviewMarkdown] = useState('');
+  const [editorImage, setEditorImage] = useState<{ src: string; file?: File; imageId?: string; description?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toasts, addToast, removeToast } = useToast();
@@ -164,6 +167,7 @@ function App() {
     const capturedFindings = findings;
     const capturedImages = [...reportImages];
     const capturedMode = pendingMode; // Capture mode at generation start
+    const capturedRedaction = redactionLevel; // Capture redaction level
 
     if (!capturedReportId || !capturedProjectId) return;
 
@@ -184,7 +188,7 @@ function App() {
       const generatedReport = await window.ipcRenderer.invoke(
         'generate-report',
         cleanedFindings + imageContext,
-        { ...settings, language: reportLanguage, mode: capturedMode }
+        { ...settings, language: reportLanguage, mode: capturedMode, redaction: capturedRedaction }
       );
 
       // Only update local state if still on the same report
@@ -366,23 +370,62 @@ ${sections.impact}`;
     }
   }, [editingImageId, refreshImages, addToast]);
 
-  // Complete the upload with description from modal
+  // Complete the upload with description from modal - now opens editor
   const handleUploadWithDescription = useCallback(async (description: string) => {
     if (!pendingUpload || !selectedReportId) return;
 
-    try {
-      console.log('Storing image with description:', description);
-      const image = await storeImage(selectedReportId, pendingUpload, description || 'Screenshot');
-      console.log('Image stored:', image);
-      refreshImages();
-      addToast(`Screenshot added as @${image.id}`, 'success');
-    } catch (error) {
-      console.error('Upload error:', error);
-      addToast('Failed to upload image', 'error');
-    } finally {
+    // Convert file to base64 and open editor
+    const reader = new FileReader();
+    reader.onload = () => {
+      setEditorImage({ src: reader.result as string, file: pendingUpload, description: description || 'Screenshot' });
       setPendingUpload(null);
+    };
+    reader.readAsDataURL(pendingUpload);
+  }, [pendingUpload, selectedReportId]);
+
+  // Handle saving edited image (new upload)
+  const handleEditorSave = useCallback(async (editedBase64: string, description: string) => {
+    if (!selectedReportId || !editorImage) return;
+
+    try {
+      if (editorImage.imageId) {
+        // Editing existing image - replace it and update description
+        await window.ipcRenderer.invoke('replace-image', editorImage.imageId, editedBase64);
+        updateImageDescription(editorImage.imageId, description);
+        refreshImages();
+        addToast('Screenshot updated', 'success');
+      } else {
+        // New upload - convert base64 to file and store
+        const response = await fetch(editedBase64);
+        const blob = await response.blob();
+        const file = new File([blob], 'screenshot.png', { type: 'image/png' });
+        const image = await storeImage(selectedReportId, file, description || 'Screenshot');
+        refreshImages();
+        addToast(`Screenshot added as @${image.id}`, 'success');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      addToast('Failed to save image', 'error');
+    } finally {
+      setEditorImage(null);
     }
-  }, [pendingUpload, selectedReportId, refreshImages, addToast]);
+  }, [selectedReportId, editorImage, refreshImages, addToast]);
+
+  // Handle editing existing image
+  const handleEditImage = useCallback(async (imageId: string) => {
+    const img = reportImages.find(i => i.id === imageId);
+    if (!img) return;
+
+    try {
+      const base64 = await window.ipcRenderer.invoke('load-image', img.filePath);
+      if (base64) {
+        setEditorImage({ src: base64, imageId: img.id, description: img.description });
+      }
+    } catch (error) {
+      console.error('Failed to load image for editing:', error);
+      addToast('Failed to load image', 'error');
+    }
+  }, [reportImages, addToast]);
 
   // Insert @img reference at cursor
   const handleInsertRef = useCallback((imageId: string) => {
@@ -482,6 +525,17 @@ ${sections.impact}`;
             {activeReportTab === 'findings' ? (
               <>
                 <Dropdown
+                  value={redactionLevel}
+                  onChange={setRedactionLevel}
+                  options={[
+                    { value: 'none', label: 'Redact: None' },
+                    { value: 'low', label: 'Redact: Low' },
+                    { value: 'medium', label: 'Redact: Medium' },
+                    { value: 'high', label: 'Redact: High' }
+                  ]}
+                  title="Redaction Level"
+                />
+                <Dropdown
                   value={pendingMode}
                   onChange={setPendingMode}
                   options={[
@@ -560,6 +614,7 @@ ${sections.impact}`;
                 onRefresh={refreshImages}
                 onInsertRef={handleInsertRef}
                 onRename={handleRenameRequest}
+                onEdit={handleEditImage}
               />
 
               {/* Upload button toolbar */}
@@ -643,6 +698,16 @@ Tip: Add screenshots and reference them with @img-xxx`}
         onCancel={() => setEditingImageId(null)}
         submitLabel="Save Changes"
       />
+
+      {/* Image Editor */}
+      {editorImage && (
+        <ImageEditor
+          imageSrc={editorImage.src}
+          initialDescription={editorImage.description}
+          onSave={handleEditorSave}
+          onCancel={() => setEditorImage(null)}
+        />
+      )}
 
     </Layout>
   );
