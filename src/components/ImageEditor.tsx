@@ -8,6 +8,7 @@ interface ImageEditorProps {
     initialDescription?: string;
     onSave: (editedBase64: string, description: string) => void;
     onCancel: () => void;
+    onDirtyChange?: (isDirty: boolean) => void;
 }
 
 interface DrawAction {
@@ -20,7 +21,7 @@ interface DrawAction {
     end?: { x: number; y: number };
 }
 
-export function ImageEditor({ imageSrc, initialDescription = '', onSave, onCancel }: ImageEditorProps) {
+export function ImageEditor({ imageSrc, initialDescription = '', onSave, onCancel, onDirtyChange }: ImageEditorProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [tool, setTool] = useState<Tool>('brush');
@@ -53,10 +54,10 @@ export function ImageEditor({ imageSrc, initialDescription = '', onSave, onCance
             if (container) {
                 const containerWidth = container.clientWidth - 48;
                 const containerHeight = container.clientHeight - 48;
+                // Scale to best fit viewport (works for both large and small images)
                 const fitScale = Math.min(
                     containerWidth / img.width,
-                    containerHeight / img.height,
-                    1 // Don't scale up small images
+                    containerHeight / img.height
                 );
                 baseScaleRef.current = fitScale; // This is our "100%"
                 setScale(fitScale);
@@ -134,6 +135,11 @@ export function ImageEditor({ imageSrc, initialDescription = '', onSave, onCance
     useEffect(() => {
         if (imageLoaded) redraw();
     }, [imageLoaded, redraw]);
+
+    // Notify parent about dirty state
+    useEffect(() => {
+        onDirtyChange?.(actions.length > 0);
+    }, [actions.length, onDirtyChange]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -309,9 +315,9 @@ export function ImageEditor({ imageSrc, initialDescription = '', onSave, onCance
             const containerHeight = container.clientHeight - 48;
             const fitScale = Math.min(
                 containerWidth / img.width,
-                containerHeight / img.height,
-                1
+                containerHeight / img.height
             );
+            baseScaleRef.current = fitScale;
             setScale(fitScale);
         } else {
             setScale(1);

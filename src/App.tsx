@@ -39,6 +39,7 @@ function App() {
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
   const [previewMarkdown, setPreviewMarkdown] = useState('');
   const [editorImage, setEditorImage] = useState<{ src: string; file?: File; imageId?: string; description?: string } | null>(null);
+  const [editorDirty, setEditorDirty] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toasts, addToast, removeToast } = useToast();
@@ -124,17 +125,34 @@ function App() {
     }
   }, [selectedReportId]);
 
+  // Helper to check if we can navigate away from editor
+  const canLeaveEditor = useCallback(() => {
+    if (!editorImage) return true;
+    if (!editorDirty) {
+      setEditorImage(null);
+      return true;
+    }
+    if (confirm('You have unsaved paint edits. Discard changes?')) {
+      setEditorImage(null);
+      setEditorDirty(false);
+      return true;
+    }
+    return false;
+  }, [editorImage, editorDirty]);
+
   const handleSelectProject = useCallback((projectId: string) => {
+    if (!canLeaveEditor()) return;
     setSelectedProjectId(projectId);
     setSelectedReportId(null);
     setActiveView('home');
-  }, []);
+  }, [canLeaveEditor]);
 
   const handleSelectReport = useCallback((projectId: string, reportId: string) => {
+    if (!canLeaveEditor()) return;
     setSelectedProjectId(projectId);
     setSelectedReportId(reportId);
     setActiveView('report');
-  }, []);
+  }, [canLeaveEditor]);
 
 
   // Auto-save report when content changes
@@ -699,7 +717,8 @@ Tip: Add screenshots and reference them with @img-xxx`}
           imageSrc={editorImage.src}
           initialDescription={editorImage.description}
           onSave={handleEditorSave}
-          onCancel={() => setEditorImage(null)}
+          onCancel={() => { setEditorImage(null); setEditorDirty(false); }}
+          onDirtyChange={setEditorDirty}
         />
       )}
 
