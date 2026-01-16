@@ -356,11 +356,6 @@ ${sections.impact}`;
     }
   }, [selectedReportId, addToast]);
 
-  // Handle renaming
-  const handleRenameRequest = useCallback((imageId: string) => {
-    setEditingImageId(imageId);
-  }, []);
-
   const handleRenameSubmit = useCallback((newDescription: string) => {
     if (editingImageId) {
       updateImageDescription(editingImageId, newDescription);
@@ -613,7 +608,6 @@ ${sections.impact}`;
                 images={reportImages}
                 onRefresh={refreshImages}
                 onInsertRef={handleInsertRef}
-                onRename={handleRenameRequest}
                 onEdit={handleEditImage}
               />
 

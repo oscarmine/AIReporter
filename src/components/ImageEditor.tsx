@@ -195,22 +195,6 @@ export function ImageEditor({ imageSrc, initialDescription = '', onSave, onCance
         }
     };
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (isPanning) {
-            setOffset({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
-            return;
-        }
-
-        if (!isDrawing || !currentAction) return;
-        const pos = getPos(e);
-
-        if (tool === 'brush') {
-            setCurrentAction(prev => prev ? { ...prev, points: [...(prev.points || []), pos] } : null);
-        } else {
-            setCurrentAction(prev => prev ? { ...prev, end: pos } : null);
-        }
-    };
-
     const handleMouseUp = () => {
         if (isPanning) {
             setIsPanning(false);

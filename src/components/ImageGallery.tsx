@@ -5,11 +5,10 @@ interface ImageGalleryProps {
     images: StoredImage[];
     onRefresh: () => void;
     onInsertRef: (imageId: string) => void;
-    onRename: (imageId: string) => void;
     onEdit?: (imageId: string) => void;
 }
 
-export function ImageGallery({ images, onRefresh, onInsertRef, onRename, onEdit }: ImageGalleryProps) {
+export function ImageGallery({ images, onRefresh, onInsertRef, onEdit }: ImageGalleryProps) {
     const [previewImage, setPreviewImage] = useState<StoredImage | null>(null);
     const [replacingImageId, setReplacingImageId] = useState<string | null>(null);
     const [cacheKey, setCacheKey] = useState(Date.now()); // Cache buster for image reload
