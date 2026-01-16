@@ -31,7 +31,7 @@ AIReporter is a **local-first desktop application** designed for security resear
 - **🔒 Privacy First:** Your API keys and data are stored locally in the application.
 
 ---
-<img width="1375" height="804" alt="Screenshot 2026-01-17 at 01 42 18" src="https://github.com/user-attachments/assets/7e26e047-7ee7-445b-b311-b1caa0be733c" />
+<img width="1375" height="804" alt="Screenshot 2026-01-17 at 01 42 18" src="https://github.com/user-attachments/assets/e2fc916e-9bc7-43ca-8dae-34b578fd3b71" />
 
 ## 🚀 Getting Started
 
@@ -100,4 +100,5 @@ This project is licensed under the MIT License.
 ---
 
 Built with ❤️ by [oscarmine](https://github.com/oscarmine)
+
 
