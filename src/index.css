@@ -1,0 +1,281 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-primary antialiased selection:bg-white/20;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Allow text selection in editable elements */
+  input,
+  textarea,
+  [contenteditable="true"] {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  /* Allow text selection in preview/prose areas */
+  .prose,
+  article {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+}
+
+.glass-panel {
+  @apply bg-glass backdrop-blur-md border border-border shadow-lg;
+}
+
+.input-glass {
+  @apply bg-white/5 border border-white/10 text-white placeholder:text-secondary focus:outline-none focus:border-white/30 transition-all;
+}
+
+.btn-primary {
+  @apply bg-white text-black font-semibold hover:bg-gray-200 transition-colors px-4 py-2 rounded-md;
+}
+
+.draggable {
+  -webkit-app-region: drag;
+}
+
+.non-draggable {
+  -webkit-app-region: no-drag;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-in {
+  0% {
+    opacity: 0;
+    transform: translateX(120%);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.3s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Report list staggered animation */
+@keyframes report-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.report-item {
+  animation: report-fade-in 0.25s ease-out forwards;
+  opacity: 0;
+}
+
+.report-item:nth-child(1) {
+  animation-delay: 0.02s;
+}
+
+.report-item:nth-child(2) {
+  animation-delay: 0.04s;
+}
+
+.report-item:nth-child(3) {
+  animation-delay: 0.06s;
+}
+
+.report-item:nth-child(4) {
+  animation-delay: 0.08s;
+}
+
+.report-item:nth-child(5) {
+  animation-delay: 0.10s;
+}
+
+.report-item:nth-child(6) {
+  animation-delay: 0.12s;
+}
+
+.report-item:nth-child(7) {
+  animation-delay: 0.14s;
+}
+
+.report-item:nth-child(8) {
+  animation-delay: 0.16s;
+}
+
+.report-item:nth-child(9) {
+  animation-delay: 0.18s;
+}
+
+.report-item:nth-child(10) {
+  animation-delay: 0.20s;
+}
+
+/* For more than 10 items, they'll still animate but without extra delay */
+
+/* Context menu fade in */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.15s ease-out;
+}
+
+/* Folder collapsible wrapper - enables smooth height animation */
+.folder-content-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  /* collapsed by default */
+  opacity: 0;
+}
+
+.folder-content-wrapper.expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition: grid-template-rows 0.1s ease-out, opacity 0.08s ease-out;
+}
+
+.folder-content-wrapper.closing {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.1s ease-out, opacity 0.08s ease-out;
+}
+
+.folder-content-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Report closing animation */
+@keyframes report-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.report-item-closing {
+  animation: report-fade-out 0.2s ease-in forwards;
+}
+
+.report-item-closing:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.report-item-closing:nth-child(2) {
+  animation-delay: 0.01s;
+}
+
+.report-item-closing:nth-child(3) {
+  animation-delay: 0.02s;
+}
+
+.report-item-closing:nth-child(4) {
+  animation-delay: 0.03s;
+}
+
+.report-item-closing:nth-child(5) {
+  animation-delay: 0.04s;
+}
+
+.report-item-closing:nth-child(6) {
+  animation-delay: 0.05s;
+}
+
+.report-item-closing:nth-child(7) {
+  animation-delay: 0.06s;
+}
+
+.report-item-closing:nth-child(8) {
+  animation-delay: 0.07s;
+}
+
+.report-item-closing:nth-child(9) {
+  animation-delay: 0.08s;
+}
+
+.report-item-closing:nth-child(10) {
+  animation-delay: 0.09s;
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+/* Fix code inside pre blocks - reset inline code styling */
+.prose pre code {
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: inherit !important;
+}
+
+.prose pre code::before,
+.prose pre code::after {
+  content: none !important;
+}
