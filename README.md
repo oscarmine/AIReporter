@@ -31,7 +31,7 @@ npm run dev
 npm run build
 ```
 
-The executable will be generated in the `release` folder.
+The executable will be generated in the `release` folder *(Windows/mac/linux)*.
 
 ## Configuration
 
