@@ -34,7 +34,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-import { app, BrowserWindow, ipcMain, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, net } from 'electron';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { generateReport } from './gemini';
@@ -337,7 +337,7 @@ app.on('activate', function () {
 app.whenReady().then(function () {
     // Register 'media' protocol to handle local image loading
     protocol.handle('media', function (request) { return __awaiter(void 0, void 0, void 0, function () {
-        var url, queryIndex, filePath, fileContent, ext, mimeType, error_6;
+        var url, queryIndex, filePath, pathToFileURL, safeUrl, error_6;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -351,24 +351,11 @@ app.whenReady().then(function () {
                     _a.trys.push([1, 3, , 4]);
                     filePath = decodeURIComponent(url);
                     console.log('Media request for:', filePath);
-                    return [4 /*yield*/, fs.readFile(filePath)];
+                    return [4 /*yield*/, import('node:url')];
                 case 2:
-                    fileContent = _a.sent();
-                    ext = path.extname(filePath).toLowerCase();
-                    mimeType = 'application/octet-stream';
-                    if (ext === '.png')
-                        mimeType = 'image/png';
-                    else if (ext === '.jpg' || ext === '.jpeg')
-                        mimeType = 'image/jpeg';
-                    else if (ext === '.gif')
-                        mimeType = 'image/gif';
-                    else if (ext === '.webp')
-                        mimeType = 'image/webp';
-                    else if (ext === '.svg')
-                        mimeType = 'image/svg+xml';
-                    return [2 /*return*/, new Response(fileContent, {
-                            headers: { 'Content-Type': mimeType }
-                        })];
+                    pathToFileURL = (_a.sent()).pathToFileURL;
+                    safeUrl = pathToFileURL(filePath).toString();
+                    return [2 /*return*/, net.fetch(safeUrl)];
                 case 3:
                     error_6 = _a.sent();
                     console.error('Failed to handle media request:', error_6);
